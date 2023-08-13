@@ -97,7 +97,7 @@ class InsectClassifierNode:
 
         self.bridge = CvBridge()
 
-        rospy.Subscriber('/theia/left/image_raw', Image, self.image_callback)
+        rospy.Subscriber('/image_topic', Image, self.image_callback)
         self.result_pub = rospy.Publisher('/classification_result', InsectClassInfo, queue_size=5)
 
     def image_callback(self, msg):

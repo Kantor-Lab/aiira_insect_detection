@@ -1,0 +1,8 @@
+<launch>
+    <arg name="image_topic" default="/theia/left/image_raw" />
+  <!-- Launch the Python node with remapped subscriber topic -->
+  <node name="insect_classification_node" pkg="aiira_detection" type="insect_classification_node.py" output="screen">
+      <remap from="/image_topic" to="$(arg image_topic)" />
+  </node>
+</launch>
+

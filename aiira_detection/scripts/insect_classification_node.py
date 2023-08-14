@@ -28,16 +28,16 @@ class InsectClassifier:
         self.insect_names = insect_names
         self.model_file = model_file
         self.classes_file = classes_file
-        logging.info(f'insects filename = {self.insect_names}')
-        logging.info(f'model path = {self.model_file}')
+        rospy.loginfo(f'insects filename = {self.insect_names}')
+        rospy.loginfo(f'model path = {self.model_file}')
         self.cmnDf = pd.read_csv(insect_names)
         self.model=torchvision.models.regnet_y_32gf()
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if device.type == 'cuda':
-            logging.info('CUDA Device', torch.cuda.get_device_name(0))
-            logging.info('Memory Usage:')
-            logging.info('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-            logging.info('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+            rospy.loginfo(f'CUDA Device: ,{torch.cuda.get_device_name(0)}')
+            rospy.loginfo('Memory Usage:')
+            rospy.loginfo(f'Allocated: {round(torch.cuda.memory_allocated(0)/1024**3,1)} GB')
+            rospy.loginfo(f'Cached:    {round(torch.cuda.memory_reserved(0)/1024**3,1)} GB')
         self.weights=torch.load(self.model_file,map_location=torch.device('cpu'))['model']
         self.model.fc=torch.nn.Linear(3712, 2526)
         self.model.load_state_dict(self.weights, strict=True)
@@ -86,15 +86,23 @@ class InsectClassifier:
 
 class InsectClassifierNode:
     def __init__(self, display_positives_only=True):
-        model_file = '/home/frc-ag-101/wksp/insect-detection/model.pth'
-        params_path = rospkg.RosPack().get_path('aiira_detection')
-        insect_names = params_path + '/params/insectNames_new.csv'
-        classes_file = params_path + '/params/classes.txt'
         self.display_positives_only = display_positives_only
-        self.clfr = InsectClassifier(insect_names, model_file, classes_file)
 
         rospy.init_node('insect_classification_node')
+        params_path = rospkg.RosPack().get_path('aiira_detection')
+        #  model_file = '/home/frc-ag-101/wksp/insect-detection/model.pth'
+        #  insect_names = params_path + '/params/insectNames_new.csv'
+        #  classes_file = params_path + '/params/classes.txt'
+        model_file = rospy.get_param('~model_file')
+        insect_names = rospy.get_param('~insect_names')
+        classes_file = rospy.get_param('~classes_file')
+        print("**********************************************************************************")
+        print(f"{model_file}")
+        print(f"{insect_names}")
+        print(f"{classes_file}")
+        print("**********************************************************************************")
 
+        self.clfr = InsectClassifier(insect_names, model_file, classes_file)
         self.bridge = CvBridge()
 
         rospy.Subscriber('/image_topic', Image, self.image_callback)
@@ -138,6 +146,7 @@ class InsectClassifierNode:
 
 if __name__ == '__main__':
     try:
+        #  node = InsectClassifierNode(model_file, insect_names, classes_file, display_positives_only=True)
         node = InsectClassifierNode(display_positives_only=True)
         node.run()
     except rospy.ROSInterruptException:

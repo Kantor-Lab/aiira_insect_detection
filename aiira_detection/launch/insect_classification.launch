@@ -3,6 +3,7 @@
     <arg name="model_file" default="/home/frc-ag-101/wksp/insect-detection/model.pth" />
     <arg name="insect_names" default="$(find aiira_detection)/params/insectNames_new.csv" />
     <arg name="classes_file" default="$(find aiira_detection)/params/classes.txt" />
+    <arg name="display_positives_only" default="true" />
 
   <!-- Launch the Python node with remapped subscriber topic -->
   <node name="insect_classification_node" pkg="aiira_detection" type="insect_classification_node.py" output="screen">
@@ -10,6 +11,7 @@
       <param name="model_file" value="$(arg model_file)" />
       <param name="insect_names" value="$(arg insect_names)" />
       <param name="classes_file" value="$(arg classes_file)" />
+      <param name="display_positives_only"  type="bool" value="$(arg display_positives_only)" />
   </node>
 </launch>
 

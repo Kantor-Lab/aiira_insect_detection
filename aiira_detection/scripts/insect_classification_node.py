@@ -50,11 +50,12 @@ class InsectClassifier:
         image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
         sciPred, cmnPred, confirmed, order, other_classes = evaluate.evaluate(
             self.model,image,self.cmnDf,classes_file=self.classes_file)
-        rospy.loginfo(f'\tScientific Name = {sciPred}\n' +
-            f'\tCommon Name       = {cmnPred}\n' +
-            f'\tConfirmed         = {confirmed}\n' +
-            f'\tOrder             = {order}\n' +
-            f'\tOther Classes     = {other_classes}')
+        rospy.loginfo('='*70)
+        rospy.loginfo(f'\tScientific Name = {sciPred}')
+        rospy.loginfo(f'\tCommon Name       = {cmnPred}')
+        rospy.loginfo(f'\tConfirmed         = {confirmed}')
+        rospy.loginfo(f'\tOrder             = {order}')
+        rospy.loginfo(f'\tOther Classes     = {other_classes}')
         return sciPred, cmnPred, confirmed, order, other_classes
 
     def image_classify(self, image, seq=-1):
@@ -64,13 +65,13 @@ class InsectClassifier:
             self.model,image,self.cmnDf,classes_file=self.classes_file)
         end_time = time.time()
         elapsed_time = end_time - start_time
+        rospy.loginfo('='*70)
         rospy.loginfo(f"Elapsed time: {elapsed_time:.3f} seconds")
-        rospy.loginfo(f'\tHeader.seq = {seq}\n' +
-            f'\tScientific Name = {sciPred}\n' +
-            f'\tCommon Name       = {cmnPred}\n' +
-            f'\tConfirmed         = {confirmed}\n' +
-            f'\tOrder             = {order}\n' +
-            f'\tOther Classes     = {other_classes}')
+        rospy.loginfo(f'\tScientific Name = {sciPred}')
+        rospy.loginfo(f'\tCommon Name       = {cmnPred}')
+        rospy.loginfo(f'\tConfirmed         = {confirmed}')
+        rospy.loginfo(f'\tOrder             = {order}')
+        rospy.loginfo(f'\tOther Classes     = {other_classes}')
         res = {
             "Elapsed Seconds": elapsed_time,
             "Header.seq": seq,
@@ -85,8 +86,7 @@ class InsectClassifier:
 
 
 class InsectClassifierNode:
-    def __init__(self, display_positives_only=True):
-        self.display_positives_only = display_positives_only
+    def __init__(self):
 
         rospy.init_node('insect_classification_node')
         params_path = rospkg.RosPack().get_path('aiira_detection')
@@ -96,11 +96,14 @@ class InsectClassifierNode:
         model_file = rospy.get_param('~model_file')
         insect_names = rospy.get_param('~insect_names')
         classes_file = rospy.get_param('~classes_file')
-        print("**********************************************************************************")
-        print(f"{model_file}")
-        print(f"{insect_names}")
-        print(f"{classes_file}")
-        print("**********************************************************************************")
+        display_positives_only = rospy.get_param('~display_positives_only')
+        self.display_positives_only = display_positives_only
+        rospy.loginfo("*"*70)
+        rospy.loginfo(f"{model_file}")
+        rospy.loginfo(f"{insect_names}")
+        rospy.loginfo(f"{classes_file}")
+        rospy.loginfo(f"{type(self.display_positives_only)}")
+        rospy.loginfo("*"*70)
 
         self.clfr = InsectClassifier(insect_names, model_file, classes_file)
         self.bridge = CvBridge()
@@ -133,8 +136,31 @@ class InsectClassifierNode:
             self.result_pub.publish(insect_info_msg)
 
             # Display the image if it is a positive result
-            if self.display_positives_only and res['Confirmed']:
-                cv.namedWindow("Insect Classification Results", cv.WINDOW_NORMAL)
+            #  if self.display_positives_only and res['Confirmed']:
+            if not self.display_positives_only:
+                cv2.namedWindow("Insect Classification Results", cv2.WINDOW_NORMAL)
+                text = str(json.dumps(res))
+                text = text[1:-1]
+                lines = text.split(',')
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1
+                font_color = (0, 255, 255)  # BGR color (red in this case)
+                thickness = 2
+
+                # Get the size of the text to calculate its position
+                text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
+                height, width, channels = cv_image.shape
+                text_x = (width - text_size[0]) // 2
+                text_y = (height + text_size[1]) // 2
+                #  cv2.putText(cv_image, text, (0, 700), font, font_scale, font_color, thickness)
+                y0, dy = 700, 4
+                for i, line in enumerate(lines):
+                    (line_width, line_height_no_baseline), baseline = cv2.getTextSize(
+                            line, font, font_scale, thickness)
+                    dy = line_height_no_baseline + baseline
+                    y = y0 + i*dy
+                    #  cv2.putText(cv_image, line, (0, y), cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+                    cv2.putText(cv_image, lines[i], (0, y), font, font_scale, font_color, thickness)
                 cv2.imshow('Insect Classification', cv_image)
                 cv2.waitKey(1)
 
@@ -147,7 +173,7 @@ class InsectClassifierNode:
 if __name__ == '__main__':
     try:
         #  node = InsectClassifierNode(model_file, insect_names, classes_file, display_positives_only=True)
-        node = InsectClassifierNode(display_positives_only=True)
+        node = InsectClassifierNode()
         node.run()
     except rospy.ROSInterruptException:
         pass
